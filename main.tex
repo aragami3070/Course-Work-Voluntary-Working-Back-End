@@ -113,10 +113,14 @@
 % "Определения"
 % \defabbr
 
-\input{sections/intro}
+\input{sections/intro.tex}
 % После введения — серии \section, \subsection и т.д.
 
-\input{sections/conclusion}
+\input{sections/theory.tex}
+
+\input{sections/practice.tex}
+
+\input{sections/conclusion.tex}
 % Отобразить все источники. Даже те, на которые нет ссылок.
 \nocite{*}
 
@@ -126,6 +130,6 @@
 % Окончание основного документа и начало приложений Каждая последующая секция
 % документа будет являться приложением
 \appendix
-\input{sections/appendix}
+\input{sections/appendix.tex}
 
 \end{document}
