@@ -265,7 +265,6 @@ Access Token используется для аутентификации пол
         var respondedPeople = await _RespondedPeopleRepository
             .Where(rp => rp.RequestId == requestId)
             .ToListAsync();
-
 \end{minted}
 
 \begin{itemize}
@@ -277,7 +276,6 @@ Access Token используется для аутентификации пол
         {
             // Получаем Id откликнувшегося студента из токена
             int myId = _UserServices.GetMyId();
-
             // Если студент уже откликался
             if (respondedPeople.Where(rp => rp.UserId == myId).Any())
             {
@@ -285,13 +283,13 @@ Access Token используется для аутентификации пол
                 response = BaseResponse.BadRequest("Already added");
                 return response;
             }
-            // Создаем новый RespondedPeople
+
+            // Добавляем студента к откликнувшимся
             RespondedPeople newRP = new RespondedPeople();
             newRP.RequestId = requestId;
             newRP.UserId = myId;
-
-            // Добавляем студента к откликнувшимся
             await _RespondedPeopleRepository.Create(newRP);
+
             // NoContent (204)
             response = BaseResponse.NoContent("Successed");
             return response;
