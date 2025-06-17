@@ -1,6 +1,6 @@
-\subsection{Реализция серверной части}
+\subsection{Реализция серверной части.}
 
-\subsubsection{Структура решения}
+\subsubsection{Структура решения.}
 
 \textbf{Структура Controllers:}
 \begin{itemize}
@@ -117,7 +117,7 @@
 		}
 \end{itemize}
 
-\subsubsection{Реализация JWT}
+\subsubsection{Реализация JWT.}
 % NOTE: JWT
 Данная реализация JWT состоит из двух токенов:
 \begin{enumerate}
@@ -289,7 +289,7 @@ Access Token используется для аутентификации пол
     }
 \end{minted}
 
-\subsubsection{Реализация ленты запросов, для администраторов и пользователей}
+\subsubsection{Реализация ленты запросов, для администраторов и пользователей.}
 
 % NOTE: Лента админов
 \textbf{Лента админов:} Если есть запросы и откликнувшиеся на них люди, то объединяем их в List<PrivateReqest> и далее выводим.
@@ -344,7 +344,7 @@ Access Token используется для аутентификации пол
         }
 \end{minted}
 
-\subsubsection{Реализация возможности записаться на запрос и отписаться с запроса}
+\subsubsection{Реализация возможности записаться на запрос и отписаться с запроса.}
 
 \textbf{Добавление пользователя к запросу:} добавление пользователя к запросу состоит из нескольких этапов:
 \begin{itemize}
@@ -413,7 +413,7 @@ Access Token используется для аутентификации пол
     }
 \end{minted}
 
-\subsubsection{Реализация начисления очков за выполненный запрос}
+\subsubsection{Реализация начисления очков за выполненный запрос.}
 
 \textbf{Начисление очков за выполненный запрос:} Начисляем очки за выполненный запрос состоит из нескольких этапов:
 
@@ -496,7 +496,109 @@ Access Token используется для аутентификации пол
         _RequestLogServices.AppendLogToFile(log);
 \end{minted}
 
+\subsubsection{Реализация логирования изменений запроса администратором.}
 
-\subsubsection{Реализация логирования изменений запроса администратором}
+% \textbf{Создание директории для логов и самого лог файла:} Создает директорию для логов и сам лог файл, если они еще не существуют:
+% \begin{minted}{cs}
+%     // Создаем директорию, если ее нет
+%     private void EnsureDirectoryExist()
+%     {
+%         if (!Directory.Exists(LogsDir))
+%         {
+%             Directory.CreateDirectory(LogsDir);
+%         }
+%     }
+%
+%     // Создаем файл, если его нет
+%     private static void EnsureFileExist(string pathToLog)
+%     {
+%         if (!File.Exists(pathToLog))
+%         {
+%             File.Create(pathToLog).Close(); // Закрываем поток после создания
+%         }
+%     }
+% \end{minted}
 
-\subsubsection{Реализация повшения до администратора и понижения до пользователя}
+\textbf{Создание пути к файлу:} Создаем путь к файлу по Id запроса:
+\begin{minted}{cs}
+    private string CreatePathToLog(int requestId)
+    {
+        // Путь до файла
+        string fileName = TemplateLogFileName + requestId.ToString() + ".log";
+        string pathToLog = Path.Combine(LogsDir, fileName);
+
+        return pathToLog;
+    }
+\end{minted}
+
+\textbf{Добавление лога в файл:} Добавляем переданный в метод лог в файл последней строкой:
+\begin{minted}{cs}
+    // Добавить RequestLog последней строкой
+    public void AppendLogToFile(RequestLog log)
+    {
+        // Путь до файла
+        string pathToLog = CreatePathToLog(log.RequestId);
+
+        // Находим последний log Id
+        RequestLog lastLog = ReadLastLogFromFile(pathToLog);
+        // Задаем новый log Id для новой записи
+        log.Id = lastLog.Id + 1;
+
+        EnsureFileExist(pathToLog);
+
+        string newLog = $"{log.Id}, {log.AdminId}, {log.RequestId}, {AddEscaping(log.Action)}, {log.Date:O}";
+
+        File.AppendAllText(pathToLog, newLog + Environment.NewLine);
+    }
+\end{minted}
+
+\textbf{Парсинг лога из файла:} Парсинг строки лога из файла в класс RequestLog:
+\begin{minted}{cs}
+    private static RequestLog ParseLogLine(string logLine)
+    {
+        var parts = logLine.Split(",");
+        return new RequestLog(
+                int.Parse(parts[0]),
+                int.Parse(parts[1]),
+                int.Parse(parts[2]),
+                RemoveEscaping(parts[3]),
+                DateTime.Parse(parts[4])
+        );
+    }
+\end{minted}
+
+\textbf{Чтение логов из файла:} Чтение всех логов запроса по его Id, возвращает List из логов
+\begin{minted}{cs}
+    // Получить все RequestLog данного Request
+    public List<RequestLog> ReadAllLogsFromFile(int requestId)
+    {
+        // Путь до файла
+        string pathToLog = CreatePathToLog(requestId);
+
+        if (!File.Exists(pathToLog))
+        {
+            return new List<RequestLog>();
+        }
+
+        return File.ReadAllLines(pathToLog)
+            .Where(line => !string.IsNullOrEmpty(line))
+            .Select(ParseLogLine)
+            .ToList();
+    }
+\end{minted}
+
+\textbf{Удаление файла лога:} Удаляем файл по Id запроса:
+\begin{minted}{cs}
+    public void DeleteLogFile(int requestId)
+    {
+        // Путь до файла
+        string pathToLog = CreatePathToLog(requestId);
+
+        if (File.Exists(pathToLog))
+        {
+            File.Delete(pathToLog);
+        }
+    }
+\end{minted}
+
+\subsubsection{Реализация повшения до администратора и понижения до пользователя.}
