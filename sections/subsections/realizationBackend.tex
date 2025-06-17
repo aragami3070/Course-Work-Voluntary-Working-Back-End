@@ -178,8 +178,10 @@ Access Token используется для аутентификации пол
 
 \subsubsection{Реализация ленты запросов, для администраторов и пользователей}
 
-\textbf{Лента админов:}
+% NOTE: Лента админов
+\textbf{Лента админов:} Если есть запросы и откликнувшиеся на них люди, то объединяем их в List<PrivateReqest> и далее выводим.
 \begin{minted}{cs}
+				// Получаем откликнувшихся на запросы
         var respondedPeople = await _RespondedPeopleRepository.GetAll();
 
         List<PrivateRequest> requests;
@@ -190,7 +192,7 @@ Access Token используется для аутентификации пол
             // Ищем в БД
             requests = await _RequestRepository
                 .GetQueryable()
-                .Select(request => new PrivateRequest(request, respondedPeople))
+                .Select(request => new PrivateRequest(request, respondedPeople)) // Преобразуем в PrivateRequest с откликнувшимися людьми
                 .ToListAsync();
         }
         else
@@ -198,13 +200,14 @@ Access Token используется для аутентификации пол
             // Ищем в БД
             requests = await _RequestRepository
                 .GetQueryable()
-                .Select(request => new PrivateRequest(request))
+                .Select(request => new PrivateRequest(request)) // Преобразуем в PrivateRequest без откликнувшихся людей
                 .ToListAsync();
         }
 \end{minted}
 
-\textbf{Лента пользователей:}
+\textbf{Лента пользователей:}  Если есть запросы и откликнувшиеся на них люди, то объединяем их в List<PublicRequest> и далее выводим.
 \begin{minted}{cs}
+				// Получаем откликнувшихся на запросы
         var respondedPeople = await _RespondedPeopleRepository.GetAll();
 
         List<PublicRequest> requests;
@@ -215,7 +218,7 @@ Access Token используется для аутентификации пол
             // Ищем в БД
             requests = await _RequestRepository
                 .GetQueryable()
-                .Select(request => new PublicRequest(request, respondedPeople))
+                .Select(request => new PublicRequest(request, respondedPeople)) // Преобразуем в PublicRequest с откликнувшимися людьми
                 .ToListAsync();
         }
         else
@@ -223,7 +226,7 @@ Access Token используется для аутентификации пол
             // Ищем в БД
             requests = await _RequestRepository
                 .GetQueryable()
-                .Select(request => new PublicRequest(request))
+                .Select(request => new PublicRequest(request)) // Преобразуем в PublicRequest без откликнувшихся людей
                 .ToListAsync();
         }
 \end{minted}
