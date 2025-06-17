@@ -302,6 +302,88 @@ Access Token используется для аутентификации пол
 
 \subsubsection{Реализация начисления очков за выполненный запрос}
 
+\textbf{Начисление очков за выполненный запрос:} Начисляем очки за выполненный запрос состоит из нескольких этапов:
+
+\begin{itemize}
+	\item{Ищем запрос в БД и проверяем его наличие и возможность закрыть его как выполненный:}
+\end{itemize}
+\begin{minted}{cs}
+        var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
+        if (request == null)
+        {
+            response = BaseResponse.NotFound("Request not found");
+            return response;
+        }
+        if (usersId.Count > request.NeededPeopleNumber)
+        {
+            response = BaseResponse.UnprocessableContent("Number of Ids is more than necessary");
+            return response;
+        }
+        if (request.IsComplited == true)
+        {
+            response = BaseResponse.BadRequest("Request is already Completed");
+            return response;
+        }
+        if (request.IsFailed == true)
+        {
+            response = BaseResponse.BadRequest("Request is already Failed");
+            return response;
+        }
+\end{minted}
+\begin{itemize}
+	\item{Вызываем метод начисления очков за выполненный запрос:}
+\end{itemize}
+\begin{minted}{cs}
+        response = await PointsPerRequest(request.PointNumber, usersId);
+\end{minted}
+
+\begin{itemize}
+	\item{Находим всех пользователей из списка Id и если они все существуют, то начисляем им очки за выполнение запроса:}
+\end{itemize}
+\begin{minted}{cs}
+    private async Task<IBaseResponse> PointsPerRequest(int points, List<int> usersId)
+    {
+        BaseResponse response;
+        List<User> users = new List<User>();
+        User user;
+
+        for (int i = 0; i < usersId.Count; i++)
+        {
+            user = await _UserRepository.FirstOrDefaultAsync(us => us.Id == usersId[i]);
+
+            if (user == null)
+            {
+                response = BaseResponse.NotFound("User is not found");
+                return response;
+            }
+
+            user.Points += points;
+        }
+
+				// Если все пользователи существуют
+        for (int i = 0; i < users.Count; i++)
+        {
+            await _UserRepository.Update(users[i]);
+        }
+        response = BaseResponse.NoContent();
+        return response;
+    }
+\end{minted}
+
+\begin{itemize}
+	\item{Отмечаем запрос как выполненный, сохраняем изменение запроса в бд и логируем изменение запроса в файл:}
+\end{itemize}
+\begin{minted}{cs}
+        request.IsComplited = true;
+
+        await _RequestRepository.Update(request);
+
+        RequestLog log = new RequestLog(0, request.AdminId, request.Id, $"Request MarkAsCompleted");
+
+        _RequestLogServices.AppendLogToFile(log);
+\end{minted}
+
+
 \subsubsection{Реализация логирования изменений запроса администратором}
 
 \subsubsection{Реализация повшения до администратора и понижения до пользователя}
