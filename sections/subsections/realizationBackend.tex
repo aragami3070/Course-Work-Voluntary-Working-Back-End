@@ -233,6 +233,75 @@ Access Token используется для аутентификации пол
 
 \subsubsection{Реализация возможности записаться на запрос и отписаться с запроса}
 
+\textbf{Добавление пользователя к запросу:} добавление пользователя к запросу состоит из нескольких этапов:
+\begin{itemize}
+	\item{Ищем запрос в БД:}
+\end{itemize}
+\begin{minted}{cs}
+    // Добавить Id студента в откликнувшихся на запрос
+    public async Task<IBaseResponse> AssignMe(int requestId)
+    {
+        BaseResponse response;
+
+        // Ищем запрос в БД
+        var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
+
+        // Если запроса нет
+        if (request == null)
+        {
+            // NotFound (404)
+            response = BaseResponse.NotFound("Request not found");
+            return response;
+        }
+
+\end{minted}
+
+\begin{itemize}
+	\item{Если запрос найден, ищем откликнувшихся на данный запрос:}
+\end{itemize}
+\begin{minted}{cs}
+        // Нашли запрос
+        // Ищем откликнувшихся на запрос
+        var respondedPeople = await _RespondedPeopleRepository
+            .Where(rp => rp.RequestId == requestId)
+            .ToListAsync();
+
+\end{minted}
+
+\begin{itemize}
+	\item{Если остались места и студент не откликался на запрос, то добавляем его в откликнувшихся:}
+\end{itemize}
+\begin{minted}{cs}
+        // Если остались места
+        if (respondedPeople.Count < request.NeededPeopleNumber)
+        {
+            // Получаем Id откликнувшегося студента из токена
+            int myId = _UserServices.GetMyId();
+
+            // Если студент уже откликался
+            if (respondedPeople.Where(rp => rp.UserId == myId).Any())
+            {
+                // BadRequest (400)
+                response = BaseResponse.BadRequest("Already added");
+                return response;
+            }
+            // Создаем новый RespondedPeople
+            RespondedPeople newRP = new RespondedPeople();
+            newRP.RequestId = requestId;
+            newRP.UserId = myId;
+
+            // Добавляем студента к откликнувшимся
+            await _RespondedPeopleRepository.Create(newRP);
+            // NoContent (204)
+            response = BaseResponse.NoContent("Successed");
+            return response;
+        }
+        // BadRequest (400)
+        response = BaseResponse.BadRequest("No more places");
+        return response;
+    }
+\end{minted}
+
 \subsubsection{Реализация начисления очков за выполненный запрос}
 
 \subsubsection{Реализация логирования изменений запроса администратором}
