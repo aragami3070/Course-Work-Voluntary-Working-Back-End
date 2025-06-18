@@ -7,7 +7,7 @@ main.synctex.gz
 main.toc
 minted_main
 _minted-main
-main.pdf
+*.pdf
 main.bbl
 main.blg
 _minted
