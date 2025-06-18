@@ -602,3 +602,57 @@ Access Token используется для аутентификации пол
 \end{minted}
 
 \subsubsection{Реализация повшения до администратора и понижения до пользователя.}
+
+\textbf{Повшение до администратора:} Выдает роль администратора по почте пользователя, если он является студентом.
+\begin{minted}{cs}
+    public async Task<IBaseResponse> PromoteToAdmin(string userEmail)
+    {
+        BaseResponse response;
+
+        var user = await _UserRepository.FirstOrDefaultAsync(us => us.Email == userEmail);
+
+        if (user == null)
+        {
+            response = BaseResponse.NotFound("User not found");
+            return response;
+        }
+
+        if (user.Role != "Student")
+        {
+            response = BaseResponse.BadRequest("User is not Student");
+            return response;
+        }
+
+        user.Role = "Admin";
+        await _UserRepository.Update(user);
+        response = BaseResponse.NoContent();
+        return response;
+    }
+\end{minted}
+
+\textbf{Понижение до пользователя:} Выдает роль пользователя по почте пользователя, если он является администратором.
+\begin{minted}{cs}
+    public async Task<IBaseResponse> DemoteToStudent(string userEmail)
+    {
+        BaseResponse response;
+
+        var user = await _UserRepository.FirstOrDefaultAsync(us => us.Email == userEmail);
+
+        if (user == null)
+        {
+            response = BaseResponse.NotFound("User not found");
+            return response;
+        }
+
+        if (user.Role == "Admin")
+        {
+            user.Role = "Student";
+            await _UserRepository.Update(user);
+            response = BaseResponse.NoContent();
+            return response;
+        }
+
+        response = BaseResponse.BadRequest("User is not Admin");
+        return response;
+    }
+\end{minted}
