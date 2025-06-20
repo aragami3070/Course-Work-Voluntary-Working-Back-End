@@ -2,120 +2,43 @@
 
 \subsubsection{Структура решения.}
 
-\textbf{Структура Controllers:}
-\begin{itemize}
-	\item{Controllers --- это классы, которые отвечают за обработку HTTP-запросов и возвращают ответы в формате JSON.
-			\begin{itemize}
-				\item{AdminRequestController --- контроллер, отвечающий за обработку запросов администраторов по работе с запросами.}
-				\item{AdminUserController --- контроллер, отвечающий за обработку запросов администраторов по работе с пользователями.}
-				\item{AuthController --- контроллер, отвечающий за регистрацию, аутентификацию пользователей.}
-				\item{DevUserController --- контроллер, отвечающий за обработку запросов Dev-ами по работе с администраторами}
-				\item{StudentRequestController --- контроллер, отвечающий за обработку запросов студентов по работе с запросами.}
-				\item{UserController --- контроллер, отвечающий за обработку запросов пользователей по работе с их личными данными.}
-			\end{itemize}
-		}
-	\item{Middlewares --- это классы, промежуточного ПО.
-			\begin{itemize}
-				\item{ExceptionHandlerMiddleware --- middleware, отвечающий за обработку исключений в приложении.}
-			\end{itemize}
-		}
-	\item{Program.cs --- основной файл инициализации, содержащий конфигурацию сервисов, настройку middleware и запуск сервера.}
-\end{itemize}
+\textbf{Структура Controllers:} изображена на рисунке \ref{fig:Controllers}
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.7\textwidth]{imgs/Controllers.png}
+    \caption{Схема структуры Controllers}
+    \label{fig:Controllers}
+\end{figure}
 
-\textbf{Структура Context:}
-\begin{itemize}
-	\item{Classes --- это классы взаимодействия с базой данных с помощью паттерна "репозиторий".
-			\begin{itemize}
-				\item{BaseRepository --- шаблонный класс репозитория, отвечающий за взаимодействие с базой данных. Все следующие репозитории наследуют его для своих сущностей.}
-				\item{RefreshTokenRepository --- репозиторий Refresh токенов.}
-				\item{RequestRepository --- репозиторий запросов.}
-				\item{RespondedPeopleRepository --- репозиторий откликнувшихся на запрос.}
-				\item{UserRepository --- репозиторий пользователей.}
-				\item{ImageRepository --- репозиторий изображений (пока не реализовано его использование).}
-			\end{itemize}
-		}
-	\item{Interfaces --- это интерфейсы для взаимодействия с базой данных с помощью паттерна "репозиторий".
-			\begin{itemize}
-				\item{IBaseRepository}
-				\item{IRefreshTokenRepository}
-				\item{IRequestRepository}
-				\item{IRespondedPeopleRepository}
-				\item{IUserRepository}
-				\item{IImageRepository}
-			\end{itemize}
-		}
-	\item{Context.cs --- настройка контекста взаимодействия с базой данных.}
-\end{itemize}
+\textbf{Структура Services:} изображена на рисунке \ref{fig:Services}
+\newpage
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.63\textwidth]{imgs/Services.png}
+    \caption{Схема структуры Services}
+    \label{fig:Services}
+\end{figure}
 
-\textbf{Структура Database:}
-\begin{itemize}
-	\item{Entities --- это классы сущностей.
-			\begin{itemize}
-				\item{Imgae --- класс сущности изображений.}
-				\item{Request --- класс сущности запросов.}
-				\item{RefreshToken --- класс сущности Refresh токенов.}
-				\item{RespondedPeople --- класс сущности откликнувшихся на запрос.}
-				\item{User --- класс сущности пользователей.}
-			\end{itemize}
-		}
-	\item{Enums --- это типы перечислений.
-			\begin{itemize}
-				\item{StatusCodes --- тип перечисления статусов HTTP.}
-			\end{itemize}
-		}
-	\item{BaseResponse --- это класс ответа для передачи данных в контроллер. }
-\end{itemize}
+\textbf{Структура Context:} изображена на рисунке \ref{fig:Context}
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.65\textwidth]{imgs/Context.png}
+    \caption{Схема структуры Context}
+    \label{fig:Context}
+\end{figure}
 
-\textbf{Структура Service:}
-\begin{itemize}
-	\item{Classes --- это классы передачи данных.
-			\begin{itemize}
-				\item{CurrentRequest --- класс запроса, используемый для передачи данных о запросах, на которые записан пользователь.}
-				\item{LoginUser --- класс, используемый для работы с данными, приходящими от клиента для входа в аккаунт пользователя.}
-				\item{PrivateRequest --- класс запроса, используемый для передачи данных о запросах с полями недоступными обычным пользователям.}
-				\item{PublicRequest --- класс запроса, используемый для передачи данных о запросах с полями доступными обычным пользователям.}
-				\item{RequestLog --- класс, используемый для логирования изменений запроса администратором.}
-				\item{Token --- класс, хранящий пару токенов: Access Token и Refresh Token.}
-			\end{itemize}
-		}
-	\item{Extentions --- это классы расширения, для добавления методов сущностям.
-			\begin{itemize}
-				\item{RequestExtentions --- класс расширения, для добавления методов сущности запроса.}
-				\item{RespondedPeopleExtentions --- класс расширения, для добавления методов сущности откликнувшихся людей.}
-				\item{UserExtentions --- класс расширения, для добавления методов сущности пользователя.}
-			\end{itemize}
-		}
-	\item{Implementations --- это классы реализации логики приложения.
-			\begin{itemize}
-				\item{AdminRequestServices --- класс реализации логики администраторов по взаимодействию с запросами.}
-				\item{AdminUserServices --- класс реализации логики администраторов по взаимодействию с пользователями.}
-				\item{AuthServices --- класс реализации логики аутентификации пользователей.}
-				\item{CachingServices --- класс реализации логики кеширования данных.}
-				\item{DevUserServices --- класс реализации логики Dev-ов по взаимодействию с администраторами.}
-				\item{HashingServices --- класс реализации логики хеширования паролей пользователей.}
-				\item{RequestLogServices --- класс реализации логики логирования изменений запроса администратором.}
-				\item{RespondedPeopleServices --- класс реализации логики по работе с откликнувшимися на запрос.}
-				\item{StudentRequestServices --- класс реализации логики студентов по взаимодействию с запросами.}
-				\item{TokenServices --- класс реализации логики работы с токенами.}
-				\item{UserServices --- класс реализации логики по взаимодействию данными пользователей.}
-			\end{itemize}
-		}
-	\item{Interfaces --- это интерфейсы логики приложения.
-			\begin{itemize}
-				\item{IAdminRequestServices}
-				\item{IAdminUserServices}
-				\item{IAuthServices}
-				\item{ICachingServices}
-				\item{IDevUserServices}
-				\item{IHashingServices}
-				\item{IRequestLogServices}
-				\item{IRespondedPeopleServices}
-				\item{IStudentRequestServices}
-				\item{ITokenServices}
-				\item{IUserServices}
-			\end{itemize}
-		}
-\end{itemize}
+\textbf{Структура Database:} изображена на рисунке \ref{fig:Database}
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.65\textwidth]{imgs/Database.png}
+    \caption{Схема структуры Controllers}
+    \label{fig:Database}
+\end{figure}
+
+% NOTE: Схема структуры приложения:
+% DataBase -> Context:
+% Context -> Services:
+% Services -> Controllers:
 
 \subsubsection{Реализация JWT.}
 % NOTE: JWT
