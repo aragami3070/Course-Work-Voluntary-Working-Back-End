@@ -230,7 +230,7 @@ Access Token используется для аутентификации пол
 \end{minted}
 
 \begin{itemize}
-	\item{Обновление Refresh Token, если токен не просрочен:}
+	\item{Обновление Refresh Token, если токен не просрочен, то оставляем старый, иначе создаем новый и перезаписываем старый в базе данных:}
 \end{itemize}
 \begin{minted}{cs}
         var oldTokenDB = new JwtSecurityTokenHandler().ReadJwtToken(oldRefreshDB.Token);
@@ -269,7 +269,7 @@ Access Token используется для аутентификации пол
 \end{minted}
 
 % NOTE: Удаление Refresh Token из бд: 
-\textbf{Удаление Refresh Token из бд:} Удаление Refresh Token из базы данных по Id пользователя:
+\textbf{Удаление Refresh Token из бд:} Удаление Refresh Token из базы данных по Id пользователя, если токен не найден в базе данных, то возвращает NoContent, иначе Ok
 \begin{minted}{cs}
     public async Task<IBaseResponse> DeleteRefreshToken(int userId)
     {
@@ -303,10 +303,10 @@ public class Tokens
 
 \subsubsection{Реализация ленты запросов, для администраторов и пользователей.}
 
-Рассмотрим реализацию ленты запросов для администраторов и пользователей.
+Рассмотрим реализацию ленты запросов для администраторов и пользователей. Лента запросов позволяет администраторам и пользователям видеть список запросов с определнными данными в зависимости от роли. Например информация о том, кто создал или поменял запрос доступна только администраторам.
 
 % NOTE: Лента админов
-\textbf{Лента админов:} Если есть запросы и откликнувшиеся на них люди, то объединяем их в List<PrivateReqest> и далее выводим.
+\textbf{Лента админов:} Если есть запросы и откликнувшиеся на них люди, то объединяем их в \mintinline{cs}{List<PrivateReqest>} и далее выводим.
 \begin{minted}{cs}
 				// Получаем откликнувшихся на запросы
         var respondedPeople = await _RespondedPeopleRepository.GetAll();
@@ -332,7 +332,7 @@ public class Tokens
         }
 \end{minted}
 
-\textbf{Лента пользователей:}  Если есть запросы и откликнувшиеся на них люди, то объединяем их в List<PublicRequest> и далее выводим.
+\textbf{Лента пользователей:}  Если есть запросы и откликнувшиеся на них люди, то объединяем их в \mintinline{cs}{List<PublicRequest>} и далее выводим.
 \begin{minted}{cs}
 				// Получаем откликнувшихся на запросы
         var respondedPeople = await _RespondedPeopleRepository.GetAll();
@@ -358,7 +358,7 @@ public class Tokens
         }
 \end{minted}
 
-Как можно заметить, в реализации лент запросов, при получении списка сущности Request из базы данных, происходит приведение сущности Request к классу PublicRequest или PrivateRequest в зависимости от того, какие данные можно отобразить в ленте для данной роли. А так же при данном преобразовании добавляются к каждому запросу записавшиеся на него люди, если они есть. Полная реализация находится в классах AdminRequestServices и StudentRequestServices их можно найти в приложении \ref{app:Others}
+Как можно заметить, в реализации лент запросов, при получении списка сущности \mintinline{cs}{Request} из базы данных, происходит приведение сущности \mintinline{cs}{Request} к классу \mintinline{cs}{PublicRequest} или \mintinline{cs}{PrivateRequest} в зависимости от того, какие данные можно отобразить в ленте для данной роли. А так же при данном преобразовании добавляются к каждому запросу записавшиеся на него люди, если они есть. Полная реализация находится в классах AdminRequestServices и StudentRequestServices, их можно найти в приложении \ref{app:Others}
 
 \subsubsection{Реализация возможности записаться на запрос и отписаться с запроса.}
 
@@ -429,12 +429,78 @@ public class Tokens
     }
 \end{minted}
 
+
+\textbf{Удаление пользователя из откликнувшихся на запроc:} удаление пользователя из откликнувшихся на запроc состоит из нескольких этапов:
+\begin{itemize}
+	\item{Ищем запрос в БД и если запрос найден, то ищем откликнувшихся на данный запрос:}
+\end{itemize}
+\begin{minted}{cs}
+        // Ищем запрос в БД
+        var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
+
+        // Если запроса нет
+        if (request == null)
+        {
+            // NotFound (404)
+            response = BaseResponse.NotFound("Request not found");
+            return response;
+        }
+
+        // Ищем откликнувшихся на запрос
+        var respondedPeople = await _RespondedPeopleRepository
+            .Where(rp => rp.RequestId == requestId)
+            .ToListAsync();
+
+\end{minted}
+
+\begin{itemize}
+	\item{Получаем Id пользователя из токена и ищем его в списке откликнувшихся на запрос:}
+\end{itemize}
+\begin{minted}{cs}
+        // Получаем Id откликнувшегося студента
+        int myId = _UserServices.GetMyId();
+        // Ищем отклик студента
+        RespondedPeople deleteRP = respondedPeople
+            .FirstOrDefault(rp => (rp.UserId == myId && rp.RequestId == request.Id));
+
+\end{minted}
+
+\begin{itemize}
+	\item{Если студент уже откликался, то удаляем его из откликнувшихся на запрос иначе выдаем BadRequest (400), так как пользователь не откликался:}
+\end{itemize}
+\begin{minted}{cs}
+        // Если студент уже откликался
+        if (deleteRP != null)
+        {
+            // Удаляем студента из RespondedPeople
+            await _RespondedPeopleRepository.Delete(deleteRP);
+            // NoContent (204)
+            response = BaseResponse.NoContent("Successed");
+            return response;
+        }
+        // BadRequest (400)
+        response = BaseResponse.BadRequest("Was not assigned");
+        return response;
+\end{minted}
+
 \subsubsection{Реализация начисления очков за выполненный запрос.}
+
+Рассмотрим реализацию начисления очков за выполненный запрос. В данном действии происходит:
+\begin{itemize}
+	\item{Начисление очков за выполнение запроса}
+	\item{Закрытие запроса как выполненного}
+\end{itemize}
 
 \textbf{Начисление очков за выполненный запрос:} Начисляем очки за выполненный запрос состоит из нескольких этапов:
 
 \begin{itemize}
-	\item{Ищем запрос в БД и проверяем его наличие и возможность закрыть его как выполненный:}
+	\item{Ищем запрос в БД и проверяем его наличие и возможность закрыть его как выполненный, то есть проверяем:
+			\begin{itemize}
+				\item{Если не имеет запрос нужное количество мест для данного количества Id пользователей, то возвращаем UnprocessableContent(422):}
+				\item{Если запрос уже выполнен, то возвращаем BadRequest(400):}
+				\item{Если запрос провален, то возвращаем BadRequest(400):}
+			\end{itemize}
+		}
 \end{itemize}
 \begin{minted}{cs}
         var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
@@ -459,6 +525,7 @@ public class Tokens
             return response;
         }
 \end{minted}
+
 \begin{itemize}
 	\item{Вызываем метод начисления очков за выполненный запрос:}
 \end{itemize}
@@ -466,6 +533,7 @@ public class Tokens
         response = await PointsPerRequest(request.PointNumber, usersId);
 \end{minted}
 
+\textbf{Реализация метода начисления очков за выполненный запрос:}
 \begin{itemize}
 	\item{Находим всех пользователей из списка Id и если они все существуют, то начисляем им очки за выполнение запроса:}
 \end{itemize}
@@ -488,7 +556,12 @@ public class Tokens
 
             user.Points += points;
         }
+\end{minted}
 
+\begin{itemize}
+	\item{Если все пользователи существуют, то начисляем им очки за выполнение запроса:}
+\end{itemize}
+\begin{minted}{cs}
 				// Если все пользователи существуют
         for (int i = 0; i < users.Count; i++)
         {
@@ -500,9 +573,14 @@ public class Tokens
 \end{minted}
 
 \begin{itemize}
-	\item{Отмечаем запрос как выполненный, сохраняем изменение запроса в бд и логируем изменение запроса в файл:}
+	\item{Если все пользователи существовали, то отмечаем запрос как выполненный, сохраняем изменение запроса в бд и логируем изменение запроса в файл, иначе возвращаем NotFound (404):}
 \end{itemize}
 \begin{minted}{cs}
+        if (response.StatusCode == DataBase.StatusCodes.NotFound)
+        {
+            return response;
+        }
+
         request.IsComplited = true;
 
         await _RequestRepository.Update(request);
@@ -514,26 +592,7 @@ public class Tokens
 
 \subsubsection{Реализация логирования изменений запроса администратором.}
 
-% \textbf{Создание директории для логов и самого лог файла:} Создает директорию для логов и сам лог файл, если они еще не существуют:
-% \begin{minted}{cs}
-%     // Создаем директорию, если ее нет
-%     private void EnsureDirectoryExist()
-%     {
-%         if (!Directory.Exists(LogsDir))
-%         {
-%             Directory.CreateDirectory(LogsDir);
-%         }
-%     }
-%
-%     // Создаем файл, если его нет
-%     private static void EnsureFileExist(string pathToLog)
-%     {
-%         if (!File.Exists(pathToLog))
-%         {
-%             File.Create(pathToLog).Close(); // Закрываем поток после создания
-%         }
-%     }
-% \end{minted}
+Рассмотрим реализацию логирования изменений запроса администратором. Она нужна для отслеживания изменений в запросе и позволяет легко увидеть нежелательные изменения в запросе, а так же позволит быстро определить администратора, который сделал нежелательные правки запроса.
 
 \textbf{Создание пути к файлу:} Создаем путь к файлу по Id запроса:
 \begin{minted}{cs}
@@ -548,20 +607,36 @@ public class Tokens
 \end{minted}
 
 \textbf{Добавление лога в файл:} Добавляем переданный в метод лог в файл последней строкой:
+\begin{itemize}
+	\item{Создаем путь к файлу для записи лога}
+\end{itemize}
 \begin{minted}{cs}
-    // Добавить RequestLog последней строкой
     public void AppendLogToFile(RequestLog log)
     {
         // Путь до файла
         string pathToLog = CreatePathToLog(log.RequestId);
-
-        // Находим последний log Id
+\end{minted}
+\begin{itemize}
+	\item{Находим последний log Id и задаем новый log Id для новой записи}
+\end{itemize}
+\begin{minted}{cs}
         RequestLog lastLog = ReadLastLogFromFile(pathToLog);
         // Задаем новый log Id для новой записи
         log.Id = lastLog.Id + 1;
+\end{minted}
 
+\begin{itemize}
+	\item{Создаем файл по пути из pathToLog, если он еще не существует}
+\end{itemize}
+\begin{minted}{cs}
         EnsureFileExist(pathToLog);
 
+\end{minted}
+
+\begin{itemize}
+	\item{Создаем строку для лога и записываем ее в файл}
+\end{itemize}
+\begin{minted}{cs}
         string newLog = $"{log.Id}, {log.AdminId}, {log.RequestId}, {AddEscaping(log.Action)}, {log.Date:O}";
 
         File.AppendAllText(pathToLog, newLog + Environment.NewLine);
@@ -569,6 +644,10 @@ public class Tokens
 \end{minted}
 
 \textbf{Парсинг лога из файла:} Парсинг строки лога из файла в класс RequestLog:
+\begin{itemize}
+	\item{Создаем массив строк из строки, в которой данные разделены запятой}
+	\item{Парсим массив строк в класс RequestLog, где каждый элемент массива это отдельное поле RequestLog}
+\end{itemize}
 \begin{minted}{cs}
     private static RequestLog ParseLogLine(string logLine)
     {
@@ -583,7 +662,7 @@ public class Tokens
     }
 \end{minted}
 
-\textbf{Чтение логов из файла:} Чтение всех логов запроса по его Id, возвращает List из логов
+\textbf{Чтение логов из файла:} Чтение всех логов запроса по его Id, возвращает List из логов, если файл существует, иначе возвращает пустой List
 \begin{minted}{cs}
     // Получить все RequestLog данного Request
     public List<RequestLog> ReadAllLogsFromFile(int requestId)
@@ -603,7 +682,7 @@ public class Tokens
     }
 \end{minted}
 
-\textbf{Удаление файла лога:} Удаляем файл по Id запроса:
+\textbf{Удаление файла лога:} Удаляем файл по Id запроса, если он существует:
 \begin{minted}{cs}
     public void DeleteLogFile(int requestId)
     {
@@ -616,6 +695,8 @@ public class Tokens
         }
     }
 \end{minted}
+
+Полная реализация находится в классе RequestLogServices.В примере кода ниже приведены лишь некоторые методы из класса. Весь код можно найти в приложении \ref{app:Others}.
 
 \subsubsection{Реализация повшения до администратора и понижения до пользователя.}
 
@@ -667,7 +748,6 @@ public class Tokens
             response = BaseResponse.NoContent();
             return response;
         }
-
         response = BaseResponse.BadRequest("User is not Admin");
         return response;
     }
