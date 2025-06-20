@@ -144,11 +144,6 @@ Access Token используется для аутентификации пол
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 \end{minted}
-% \textbf{Подпись токенов:}
-% \begin{enumerate}
-% 	\item{Access Token подписывается с помощью ключа secretKey хранящегося в appsettings.json.}
-% 	\item{Refresh Token подписывается с помощью того же ключа secretKey + строки "sault".}
-% \end{enumerate}
 
 % NOTE: Валидация Refresh Token 
 \textbf{Валидация Refresh Token:} Если Refresh Token валиден, то возвращает Ok, если просрочен, то Ok с описанием, что время жизни токена истекло, иначе BadRequest с описанием, что токен невалидный.
@@ -166,7 +161,7 @@ Access Token используется для аутентификации пол
         };
         try
         {
-            // Проверка подписи JWT, если токен не верный будет исключение
+            // Проверка подписи JWT
             tokenHandler.ValidateToken(token, validationParameters, out _);
             return BaseResponse<Tokens>.Ok();
         }
@@ -191,7 +186,6 @@ Access Token используется для аутентификации пол
     {
         BaseResponse<Tokens> response = ValidateRefreshToken(oldRefreshToken, secretKey);
 
-        // Если oldRefreshToken невалидный
         if (response.StatusCode == StatusCodes.BadRequest)
         {
             return response;
@@ -204,7 +198,7 @@ Access Token используется для аутентификации пол
 \begin{minted}{cs}
         var oldToken = new JwtSecurityTokenHandler().ReadJwtToken(oldRefreshToken);
         User user = new User();
-        // Заполняем user на основе данных из oldRefreshToken
+
         user.Id = Convert.ToInt32(oldToken.Claims.First(
                     claim => claim.Type == JwtRegisteredClaimNames.Sub
                     ).Value);
@@ -220,7 +214,6 @@ Access Token используется для аутентификации пол
 	\item{Проверка на нахождение Refresh Token в базе данных (если его там нет, то считаем недействительным):}
 \end{itemize}
 \begin{minted}{cs}
-        // Находим oldRefreshToken
         var oldRefreshDB = await _RefreshTokenRepository.FirstOrDefaultAsync(token => token.Token == oldRefreshToken);
         if (oldRefreshDB == null)
         {
@@ -235,12 +228,11 @@ Access Token используется для аутентификации пол
 \begin{minted}{cs}
         var oldTokenDB = new JwtSecurityTokenHandler().ReadJwtToken(oldRefreshDB.Token);
 
-        // Оставляем старый refreshToken, или в случае просрока заменим далее
         string refreshToken = oldRefreshDB.Token;
         if (response.Description == "Token expired")
         {
-            // Удаляем oldRefreshToken, если тот истек
             await _RefreshTokenRepository.Delete(oldRefreshDB);
+
             // Пересоздаем oldRefreshToken, если тот истек
             refreshToken = GenerateRefreshToken(user, secretKey);
 
@@ -249,7 +241,6 @@ Access Token используется для аутентификации пол
                 Id = user.Id,
                 Token = refreshToken
             };
-            // Сохраняем новый refreshToken в бд
             await _RefreshTokenRepository.Create(saveRefreshToken);
         }
 \end{minted}
@@ -313,7 +304,6 @@ public class Tokens
 
         List<PrivateRequest> requests;
 
-        // Если есть откликнувшеся люди
         if (respondedPeople != null && respondedPeople.Count > 0)
         {
             // Ищем в БД
@@ -339,7 +329,6 @@ public class Tokens
 
         List<PublicRequest> requests;
 
-        // Если есть откликнувшеся люди
         if (respondedPeople != null && respondedPeople.Count > 0)
         {
             // Ищем в БД
@@ -367,12 +356,10 @@ public class Tokens
 	\item{Ищем запрос в БД:}
 \end{itemize}
 \begin{minted}{cs}
-    // Добавить Id студента в откликнувшихся на запрос
     public async Task<IBaseResponse> AssignMe(int requestId)
     {
         BaseResponse response;
 
-        // Ищем запрос в БД
         var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
 
         // Если запроса нет
@@ -389,8 +376,6 @@ public class Tokens
 	\item{Если запрос найден, ищем откликнувшихся на данный запрос:}
 \end{itemize}
 \begin{minted}{cs}
-        // Нашли запрос
-        // Ищем откликнувшихся на запрос
         var respondedPeople = await _RespondedPeopleRepository
             .Where(rp => rp.RequestId == requestId)
             .ToListAsync();
@@ -400,12 +385,10 @@ public class Tokens
 	\item{Если остались места и студент не откликался на запрос, то добавляем его в откликнувшихся:}
 \end{itemize}
 \begin{minted}{cs}
-        // Если остались места
         if (respondedPeople.Count < request.NeededPeopleNumber)
         {
             // Получаем Id откликнувшегося студента из токена
             int myId = _UserServices.GetMyId();
-            // Если студент уже откликался
             if (respondedPeople.Where(rp => rp.UserId == myId).Any())
             {
                 // BadRequest (400)
@@ -435,10 +418,8 @@ public class Tokens
 	\item{Ищем запрос в БД и если запрос найден, то ищем откликнувшихся на данный запрос:}
 \end{itemize}
 \begin{minted}{cs}
-        // Ищем запрос в БД
         var request = await _RequestRepository.FirstOrDefaultAsync(rq => rq.Id == requestId);
 
-        // Если запроса нет
         if (request == null)
         {
             // NotFound (404)
@@ -457,7 +438,6 @@ public class Tokens
 	\item{Получаем Id пользователя из токена и ищем его в списке откликнувшихся на запрос:}
 \end{itemize}
 \begin{minted}{cs}
-        // Получаем Id откликнувшегося студента
         int myId = _UserServices.GetMyId();
         // Ищем отклик студента
         RespondedPeople deleteRP = respondedPeople
@@ -469,10 +449,8 @@ public class Tokens
 	\item{Если студент уже откликался, то удаляем его из откликнувшихся на запрос иначе выдаем BadRequest (400), так как пользователь не откликался:}
 \end{itemize}
 \begin{minted}{cs}
-        // Если студент уже откликался
         if (deleteRP != null)
         {
-            // Удаляем студента из RespondedPeople
             await _RespondedPeopleRepository.Delete(deleteRP);
             // NoContent (204)
             response = BaseResponse.NoContent("Successed");
@@ -562,7 +540,6 @@ public class Tokens
 	\item{Если все пользователи существуют, то начисляем им очки за выполнение запроса:}
 \end{itemize}
 \begin{minted}{cs}
-				// Если все пользователи существуют
         for (int i = 0; i < users.Count; i++)
         {
             await _UserRepository.Update(users[i]);
@@ -580,13 +557,11 @@ public class Tokens
         {
             return response;
         }
-
         request.IsComplited = true;
 
         await _RequestRepository.Update(request);
 
         RequestLog log = new RequestLog(0, request.AdminId, request.Id, $"Request MarkAsCompleted");
-
         _RequestLogServices.AppendLogToFile(log);
 \end{minted}
 
@@ -598,10 +573,8 @@ public class Tokens
 \begin{minted}{cs}
     private string CreatePathToLog(int requestId)
     {
-        // Путь до файла
         string fileName = TemplateLogFileName + requestId.ToString() + ".log";
         string pathToLog = Path.Combine(LogsDir, fileName);
-
         return pathToLog;
     }
 \end{minted}
@@ -613,7 +586,6 @@ public class Tokens
 \begin{minted}{cs}
     public void AppendLogToFile(RequestLog log)
     {
-        // Путь до файла
         string pathToLog = CreatePathToLog(log.RequestId);
 \end{minted}
 \begin{itemize}
@@ -621,7 +593,6 @@ public class Tokens
 \end{itemize}
 \begin{minted}{cs}
         RequestLog lastLog = ReadLastLogFromFile(pathToLog);
-        // Задаем новый log Id для новой записи
         log.Id = lastLog.Id + 1;
 \end{minted}
 
@@ -630,7 +601,6 @@ public class Tokens
 \end{itemize}
 \begin{minted}{cs}
         EnsureFileExist(pathToLog);
-
 \end{minted}
 
 \begin{itemize}
@@ -664,7 +634,6 @@ public class Tokens
 
 \textbf{Чтение логов из файла:} Чтение всех логов запроса по его Id, возвращает List из логов, если файл существует, иначе возвращает пустой List
 \begin{minted}{cs}
-    // Получить все RequestLog данного Request
     public List<RequestLog> ReadAllLogsFromFile(int requestId)
     {
         // Путь до файла
@@ -705,7 +674,6 @@ public class Tokens
     public async Task<IBaseResponse> PromoteToAdmin(string userEmail)
     {
         BaseResponse response;
-
         var user = await _UserRepository.FirstOrDefaultAsync(us => us.Email == userEmail);
 
         if (user == null)
@@ -713,13 +681,11 @@ public class Tokens
             response = BaseResponse.NotFound("User not found");
             return response;
         }
-
         if (user.Role != "Student")
         {
             response = BaseResponse.BadRequest("User is not Student");
             return response;
         }
-
         user.Role = "Admin";
         await _UserRepository.Update(user);
         response = BaseResponse.NoContent();
@@ -732,7 +698,6 @@ public class Tokens
     public async Task<IBaseResponse> DemoteToStudent(string userEmail)
     {
         BaseResponse response;
-
         var user = await _UserRepository.FirstOrDefaultAsync(us => us.Email == userEmail);
 
         if (user == null)
@@ -740,7 +705,6 @@ public class Tokens
             response = BaseResponse.NotFound("User not found");
             return response;
         }
-
         if (user.Role == "Admin")
         {
             user.Role = "Student";
