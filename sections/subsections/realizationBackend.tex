@@ -216,6 +216,25 @@ public class Tokens
 }
 \end{minted}
 
+Рассмотрим получение токенов при входе в аккаунт. Для этого необходимо отправить JSON изображенный на рисунке \ref{fig:LoginInput}:
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.7\textwidth]{imgs/LoginInput.png}
+    \caption{Пример отправленного JSON при входе в аккаунт}
+    \label{fig:LoginInput}
+\end{figure}
+
+В ответ на это приходит JSON изображенный на рисунке \ref{fig:LoginOutput}:
+
+\newpage
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.7\textwidth]{imgs/LoginOutput.png}
+    \caption{Пример полученного JSON при входе в аккаунт}
+    \label{fig:LoginOutput}
+\end{figure}
+
 Вся оставшаяся реализация токенов находится в отдельном классе: TokenServices. Полный код для TokenServices находится в приложении \ref{app:TokenServices}
 
 \subsubsection{Реализация ленты запросов, для администраторов и пользователей.}
