@@ -292,7 +292,27 @@ public class Tokens
         }
 \end{minted}
 
-Как можно заметить, в реализации лент запросов, при получении списка сущности \mintinline{cs}{Request} из базы данных, происходит приведение сущности \mintinline{cs}{Request} к классу \mintinline{cs}{PublicRequest} или \mintinline{cs}{PrivateRequest} в зависимости от того, какие данные можно отобразить в ленте для данной роли. А так же при данном преобразовании добавляются к каждому запросу записавшиеся на него люди, если они есть. Полная реализация находится в классах AdminRequestServices и StudentRequestServices, их можно найти в приложении \ref{app:Others}
+Как можно заметить, в реализации лент запросов, при получении списка сущности \mintinline{cs}{Request} из базы данных, происходит приведение сущности \mintinline{cs}{Request} к классу \mintinline{cs}{PublicRequest} или \mintinline{cs}{PrivateRequest} в зависимости от того, какие данные можно отобразить в ленте для данной роли. А так же при данном преобразовании добавляются к каждому запросу записавшиеся на него люди, если они есть.
+
+Пример ленты пользователя изображен на рисунке \ref{fig:PublicFeed}:
+
+\newpage
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.75\textwidth]{imgs/PublicFeed.png}
+    \caption{Пример ленты пользователя}
+    \label{fig:PublicFeed}
+\end{figure}
+
+Пример ленты администратора изображен на рисунке \ref{fig:AdminFeed}:
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width = 0.7\textwidth]{imgs/AdminFeed.png}
+    \caption{Пример ленты администратора}
+    \label{fig:AdminFeed}
+\end{figure}
+Полная реализация находится в классах AdminRequestServices и StudentRequestServices, их можно найти в приложении \ref{app:Others}
 
 \subsubsection{Реализация возможности записаться на запрос и отписаться с запроса.}
 
@@ -458,7 +478,7 @@ public class Tokens
 
 \textbf{Реализация метода начисления очков за выполненный запрос:}
 \begin{itemize}
-	\item{Находим всех пользователей из списка Id и если они все существуют, то начисляем им очки за выполнение запроса:}
+	\item{Находим всех пользователей из списка Id и если они все существуют, то начисляем им очки за выполнение запроса и увеличиваем количество завершенных запросов пользователя:}
 \end{itemize}
 \begin{minted}{cs}
     private async Task<IBaseResponse> PointsPerRequest(int points, List<int> usersId)
@@ -478,6 +498,7 @@ public class Tokens
             }
 
             user.Points += points;
+            user.FinishedRequests += 1;
         }
 \end{minted}
 
