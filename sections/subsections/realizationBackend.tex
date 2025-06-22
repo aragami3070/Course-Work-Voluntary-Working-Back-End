@@ -235,7 +235,7 @@ public class Tokens
     \label{fig:LoginOutput}
 \end{figure}
 
-Вся оставшаяся реализация токенов находится в отдельном классе: TokenServices. Полный код для TokenServices находится в приложении \ref{app:TokenServices}
+Вся оставшаяся реализация токенов находится в отдельном классе:Token- Services. Полный код для TokenServices находится в приложении \ref{app:TokenServices}
 
 \subsubsection{Реализация ленты запросов, для администраторов и пользователей.}
 
@@ -312,7 +312,8 @@ public class Tokens
     \caption{Пример ленты администратора}
     \label{fig:AdminFeed}
 \end{figure}
-Полная реализация находится в классах AdminRequestServices и StudentRequestServices, их можно найти в приложении \ref{app:Others}
+
+Полная реализация находится в классах AdminRequestServices и Student- RequestServices, их можно найти в приложении.\ref{app:Others}
 
 \subsubsection{Реализация возможности записаться на запрос и отписаться с запроса.}
 
@@ -524,7 +525,6 @@ public class Tokens
             return response;
         }
         request.IsComplited = true;
-
         await _RequestRepository.Update(request);
 
         RequestLog log = new RequestLog(0, request.AdminId, request.Id, $"Request MarkAsCompleted");
@@ -574,7 +574,6 @@ public class Tokens
 \end{itemize}
 \begin{minted}{cs}
         string newLog = $"{log.Id}, {log.AdminId}, {log.RequestId}, {AddEscaping(log.Action)}, {log.Date:O}";
-
         File.AppendAllText(pathToLog, newLog + Environment.NewLine);
     }
 \end{minted}
